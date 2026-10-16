@@ -1,0 +1,3027 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Minecraft Browser</title>
+
+<style>
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #87CEEB;
+    user-select: none;
+}
+
+canvas {
+    display: block;
+}
+
+#celownik {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+    pointer-events: none;
+    z-index: 5;
+}
+
+#celownik::before,
+#celownik::after {
+    content: "";
+    position: absolute;
+    background: white;
+}
+
+#celownik::before {
+    top: 7px;
+    left: 0;
+    width: 16px;
+    height: 2px;
+}
+
+#celownik::after {
+    top: 0;
+    left: 7px;
+    width: 2px;
+    height: 16px;
+}
+
+#interfejs {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    background: rgba(0,0,0,0.7);
+    padding: 15px;
+    border-radius: 8px;
+    pointer-events: none;
+    font-size: 14px;
+    line-height: 1.6;
+    z-index: 5;
+}
+
+#ekran-startowy {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10;
+    text-align: center;
+}
+
+#ekran-startowy h1 {
+    margin: 0 0 10px 0;
+    font-size: 36px;
+    color: #55ff55;
+}
+
+#ekran-startowy p {
+    color: #ddd;
+    font-size: 18px;
+    margin: 5px;
+}
+
+#hotbar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    padding: 6px;
+    background: rgba(30,30,30,0.88);
+    border: 3px solid #222;
+    border-radius: 6px;
+    z-index: 6;
+}
+
+.slot {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    box-sizing: border-box;
+    background: rgba(100,100,100,0.65);
+    border: 3px solid #555;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+.slot.selected {
+    border-color: white;
+    box-shadow:
+        0 0 0 2px #ffd700,
+        0 0 10px white;
+}
+
+.slot-number {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 11px;
+    color: #ddd;
+}
+
+.slot-count {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    text-shadow:
+        2px 2px 2px black;
+}
+
+.item-icon {
+    width: 30px;
+    height: 30px;
+    box-shadow:
+        inset 2px 2px rgba(255,255,255,0.15),
+        inset -2px -2px rgba(0,0,0,0.25);
+}
+
+#inventory {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 520px;
+    padding: 20px;
+    background: rgba(25,25,25,0.96);
+    border: 4px solid #555;
+    box-shadow:
+        0 0 0 3px #222,
+        0 10px 30px rgba(0,0,0,0.7);
+    z-index: 20;
+    display: none;
+}
+
+#inventory h2 {
+    margin: 0 0 15px;
+    text-align: center;
+    color: white;
+    font-size: 24px;
+}
+
+#inventory-slots {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 5px;
+}
+
+.inventory-slot {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background: rgba(80,80,80,0.9);
+    border: 3px solid #444;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.inventory-slot.selected {
+    border-color: white;
+    box-shadow:
+        0 0 0 2px #ffd700;
+}
+
+.inventory-slot .slot-number {
+    position: absolute;
+    left: 3px;
+    top: 2px;
+    color: #ccc;
+    font-size: 10px;
+}
+
+.inventory-slot .slot-count {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow:
+        2px 2px 2px black;
+}
+
+.inventory-icon {
+    width: 30px;
+    height: 30px;
+    box-shadow:
+        inset 2px 2px rgba(255,255,255,0.2),
+        inset -2px -2px rgba(0,0,0,0.3);
+}
+
+#inventory-info {
+    margin-top: 15px;
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+}
+
+#komunikat {
+    position: absolute;
+    left: 50%;
+    bottom: 105px;
+    transform: translateX(-50%);
+    color: white;
+    font-weight: bold;
+    text-shadow:
+        2px 2px 3px black;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 7;
+}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+</head>
+
+<body>
+
+<div id="ekran-startowy">
+
+    <h1>MINECRAFT PRZEGLĄDARKOWY</h1>
+
+    <p>
+        👉 KLIKNIJ TUTAJ, ABY ZAGRAĆ 👈
+    </p>
+
+    <p style="font-size:14px;color:#aaa;">
+        WASD — ruch | Spacja — skok | ESC — pauza
+    </p>
+
+    <p style="font-size:14px;color:#aaa;">
+        Lewy klik — niszcz | Prawy klik — buduj
+    </p>
+
+    <p style="font-size:14px;color:#aaa;">
+        E — ekwipunek | 1-9 — slot | Q — wyrzuć
+    </p>
+
+</div>
+
+<div id="celownik"></div>
+
+<div id="interfejs">
+
+    <strong>STEROWANIE:</strong><br>
+
+    • <b>W A S D</b> — ruch<br>
+    • <b>Spacja</b> — skok<br>
+    • <b>Lewy klik</b> — zniszcz<br>
+    • <b>Prawy klik</b> — postaw<br>
+    • <b>E</b> — ekwipunek<br>
+    • <b>1–9</b> — wybierz slot<br>
+    • <b>Q</b> — wyrzuć blok<br>
+    • <b>ESC</b> — pauza
+
+</div>
+
+<div id="komunikat"></div>
+
+<div id="hotbar"></div>
+
+<div id="inventory">
+
+    <h2>EKWIPUNEK</h2>
+
+    <div id="inventory-slots"></div>
+
+    <div id="inventory-info">
+        Kliknij slot albo użyj 1–9.<br>
+        <b>E</b> — zamknij ekwipunek.
+    </div>
+
+</div>
+
+
+<script>
+
+// =====================================================
+// SCENA
+// =====================================================
+
+const scene = new THREE.Scene();
+
+scene.background =
+    new THREE.Color(0x87CEEB);
+
+scene.fog =
+    new THREE.FogExp2(
+        0x87CEEB,
+        0.012
+    );
+
+
+// =====================================================
+// KAMERA
+// =====================================================
+
+const camera =
+    new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        1000
+    );
+
+camera.rotation.order = "YXZ";
+
+
+// =====================================================
+// RENDERER
+// =====================================================
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias: true
+    });
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
+);
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+// =====================================================
+// OŚWIETLENIE
+// =====================================================
+
+const ambientLight =
+    new THREE.AmbientLight(
+        0xffffff,
+        0.6
+    );
+
+scene.add(
+    ambientLight
+);
+
+const sunLight =
+    new THREE.DirectionalLight(
+        0xffffff,
+        0.8
+    );
+
+sunLight.position.set(
+    30,
+    80,
+    40
+);
+
+scene.add(
+    sunLight
+);
+
+
+// =====================================================
+// RĘKA GRACZA
+// =====================================================
+
+const reka =
+    new THREE.Group();
+
+camera.add(
+    reka
+);
+
+scene.add(camera);
+
+const rekaMaterial =
+    new THREE.MeshLambertMaterial({
+        color: 0xe0a07a
+    });
+
+const rekaGeometry =
+    new THREE.BoxGeometry(
+        0.38,
+        0.38,
+        1.15
+    );
+
+const rekaMesh =
+    new THREE.Mesh(
+        rekaGeometry,
+        rekaMaterial
+    );
+
+rekaMesh.position.set(
+    0.48,
+    -0.48,
+    -0.75
+);
+
+rekaMesh.rotation.set(
+    -0.35,
+    0.05,
+    -0.12
+);
+
+reka.add(
+    rekaMesh
+);
+
+let animacjaReki = 0;
+let czasReki = 0;
+
+const pozycjaRekiStart =
+    new THREE.Vector3(
+        0.48,
+        -0.48,
+        -0.75
+    );
+
+const rotacjaRekiStart =
+    new THREE.Euler(
+        -0.35,
+        0.05,
+        -0.12
+    );
+
+
+// =====================================================
+// GEOMETRIA
+// =====================================================
+
+const blockGeometry =
+    new THREE.BoxGeometry(
+        1,
+        1,
+        1
+    );
+
+
+// =====================================================
+// MATERIAŁY
+// =====================================================
+
+const materialy = {
+
+    trawa:
+        new THREE.MeshLambertMaterial({
+            color: 0x557a46
+        }),
+
+    ziemia:
+        new THREE.MeshLambertMaterial({
+            color: 0x865D36
+        }),
+
+    kamien:
+        new THREE.MeshLambertMaterial({
+            color: 0x71797E
+        }),
+
+    drewno:
+        new THREE.MeshLambertMaterial({
+            color: 0x5c4033
+        }),
+
+    liscie:
+        new THREE.MeshLambertMaterial({
+            color: 0x2e5618
+        })
+
+};
+
+
+// =====================================================
+// ITEMY
+// =====================================================
+
+const itemy = {
+
+    trawa: {
+        nazwa: "Trawa",
+        kolor: "#557a46",
+        material: materialy.trawa
+    },
+
+    ziemia: {
+        nazwa: "Ziemia",
+        kolor: "#865D36",
+        material: materialy.ziemia
+    },
+
+    kamien: {
+        nazwa: "Kamień",
+        kolor: "#71797E",
+        material: materialy.kamien
+    },
+
+    drewno: {
+        nazwa: "Drewno",
+        kolor: "#5c4033",
+        material: materialy.drewno
+    },
+
+    liscie: {
+        nazwa: "Liście",
+        kolor: "#2e5618",
+        material: materialy.liscie
+    }
+
+};
+
+
+// =====================================================
+// BLOKI
+// =====================================================
+
+const blocks = [];
+
+
+// =====================================================
+// TWORZENIE BLOKU
+// =====================================================
+
+function postawBlok(
+    x,
+    y,
+    z,
+    material,
+    typ
+) {
+
+    const block =
+        new THREE.Mesh(
+            blockGeometry,
+            material
+        );
+
+    block.position.set(
+        x,
+        y,
+        z
+    );
+
+    block.userData.typ =
+        typ || "trawa";
+
+    scene.add(
+        block
+    );
+
+    blocks.push(
+        block
+    );
+
+    return block;
+}
+
+
+// =====================================================
+// WYSOKOŚĆ TERENU
+// =====================================================
+
+function pobierzWysokosc(
+    x,
+    z
+) {
+
+    return Math.floor(
+        (
+            Math.sin(x * 0.1) +
+            Math.cos(z * 0.1)
+        ) * 2
+    ) + 5;
+
+}
+
+
+// =====================================================
+// GENEROWANIE ŚWIATA
+// =====================================================
+
+const ROZMIAR_SWIATA = 120;
+
+for (
+    let x = -ROZMIAR_SWIATA / 2;
+    x < ROZMIAR_SWIATA / 2;
+    x++
+) {
+
+    for (
+        let z = -ROZMIAR_SWIATA / 2;
+        z < ROZMIAR_SWIATA / 2;
+        z++
+    ) {
+
+        const h =
+            pobierzWysokosc(
+                x,
+                z
+            );
+
+
+        postawBlok(
+            x,
+            h,
+            z,
+            materialy.trawa,
+            "trawa"
+        );
+
+
+        postawBlok(
+            x,
+            h - 1,
+            z,
+            materialy.ziemia,
+            "ziemia"
+        );
+
+        postawBlok(
+            x,
+            h - 2,
+            z,
+            materialy.ziemia,
+            "ziemia"
+        );
+
+
+        for (
+            let y = h - 3;
+            y >= 0;
+            y--
+        ) {
+
+            postawBlok(
+                x,
+                y,
+                z,
+                materialy.kamien,
+                "kamien"
+            );
+
+        }
+
+
+        // =================================================
+        // DRZEWA
+        // =================================================
+
+        if (
+            Math.random() < 0.015
+        ) {
+
+            const wysPnia =
+                Math.floor(
+                    Math.random() * 2
+                ) + 4;
+
+
+            for (
+                let p = 1;
+                p <= wysPnia;
+                p++
+            ) {
+
+                postawBlok(
+                    x,
+                    h + p,
+                    z,
+                    materialy.drewno,
+                    "drewno"
+                );
+
+            }
+
+
+            const czubek =
+                h + wysPnia;
+
+
+            for (
+                let lx = -2;
+                lx <= 2;
+                lx++
+            ) {
+
+                for (
+                    let lz = -2;
+                    lz <= 2;
+                    lz++
+                ) {
+
+                    for (
+                        let ly = -1;
+                        ly <= 1;
+                        ly++
+                    ) {
+
+                        if (
+                            Math.abs(lx) === 2 &&
+                            Math.abs(lz) === 2 &&
+                            ly === 1
+                        ) {
+                            continue;
+                        }
+
+
+                        if (
+                            lx === 0 &&
+                            lz === 0 &&
+                            ly <= 0
+                        ) {
+                            continue;
+                        }
+
+
+                        postawBlok(
+                            x + lx,
+                            czubek + ly,
+                            z + lz,
+                            materialy.liscie,
+                            "liscie"
+                        );
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+// =====================================================
+// ŚWINIE
+// =====================================================
+
+const swinie = [];
+
+function stworzSwinke(
+    x,
+    z
+) {
+
+    const swinia =
+        new THREE.Group();
+
+
+    const materialCiala =
+        new THREE.MeshLambertMaterial({
+            color: 0xf0a0a8
+        });
+
+    const materialCiemny =
+        new THREE.MeshLambertMaterial({
+            color: 0xc97882
+        });
+
+    const materialOczu =
+        new THREE.MeshBasicMaterial({
+            color: 0x111111
+        });
+
+
+    // =================================================
+    // CIAŁO
+    // =================================================
+
+    const cialo =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                1.2,
+                0.75,
+                1.8
+            ),
+            materialCiala
+        );
+
+    cialo.position.y =
+        0.65;
+
+    swinia.add(
+        cialo
+    );
+
+
+    // =================================================
+    // GŁOWA
+    // =================================================
+
+    const glowa =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                0.9,
+                0.8,
+                0.8
+            ),
+            materialCiala
+        );
+
+    glowa.position.set(
+        0,
+        0.85,
+        -1.05
+    );
+
+    swinia.add(
+        glowa
+    );
+
+
+    // =================================================
+    // RYJEK
+    // =================================================
+
+    const ryjek =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                0.55,
+                0.4,
+                0.25
+            ),
+            materialCiemny
+        );
+
+    ryjek.position.set(
+        0,
+        0.72,
+        -1.5
+    );
+
+    swinia.add(
+        ryjek
+    );
+
+
+    // =================================================
+    // OCZY
+    // =================================================
+
+    const oko1 =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                0.1,
+                0.1,
+                0.05
+            ),
+            materialOczu
+        );
+
+    oko1.position.set(
+        -0.28,
+        0.98,
+        -1.47
+    );
+
+    swinia.add(
+        oko1
+    );
+
+
+    const oko2 =
+        oko1.clone();
+
+    oko2.position.x =
+        0.28;
+
+    swinia.add(
+        oko2
+    );
+
+
+    // =================================================
+    // NOGI
+    // =================================================
+
+    const nogi = [];
+
+    for (
+        let i = 0;
+        i < 4;
+        i++
+    ) {
+
+        const noga =
+            new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    0.28,
+                    0.65,
+                    0.28
+                ),
+                materialCiala
+            );
+
+        const xNogi =
+            i % 2 === 0
+                ? -0.4
+                : 0.4;
+
+        const zNogi =
+            i < 2
+                ? -0.55
+                : 0.55;
+
+        noga.position.set(
+            xNogi,
+            0.25,
+            zNogi
+        );
+
+        swinia.add(
+            noga
+        );
+
+        nogi.push(
+            noga
+        );
+
+    }
+
+
+    // =================================================
+    // POZYCJA
+    // =================================================
+
+    const wysokosc =
+        pobierzWysokosc(
+            Math.floor(x),
+            Math.floor(z)
+        );
+
+    swinia.position.set(
+        x,
+        wysokosc + 0.05,
+        z
+    );
+
+
+    // =================================================
+    // AI
+    // =================================================
+
+    swinia.userData.kierunek =
+        Math.random() *
+        Math.PI *
+        2;
+
+    swinia.userData.predkosc =
+        0.4 +
+        Math.random() * 0.7;
+
+    swinia.userData.timer =
+        1 +
+        Math.random() * 4;
+
+    swinia.userData.animacja =
+        Math.random() *
+        Math.PI * 2;
+
+    swinia.userData.nogi =
+        nogi;
+
+
+    scene.add(
+        swinia
+    );
+
+    swinie.push(
+        swinia
+    );
+
+    return swinia;
+
+}
+
+
+// =====================================================
+// GENEROWANIE ŚWIŃ
+// =====================================================
+
+for (
+    let i = 0;
+    i < 30;
+    i++
+) {
+
+    let x;
+    let z;
+
+    do {
+
+        x =
+            Math.floor(
+                (Math.random() - 0.5) *
+                (ROZMIAR_SWIATA - 10)
+            );
+
+        z =
+            Math.floor(
+                (Math.random() - 0.5) *
+                (ROZMIAR_SWIATA - 10)
+            );
+
+    } while (
+        Math.abs(x) < 5 &&
+        Math.abs(z) < 5
+    );
+
+
+    stworzSwinke(
+        x,
+        z
+    );
+
+}
+
+
+// =====================================================
+// AI ŚWIŃ
+// =====================================================
+
+function aktualizujSwinie(
+    delta
+) {
+
+    for (
+        const swinia of swinie
+    ) {
+
+        swinia.userData.timer -=
+            delta;
+
+
+        // Nowy kierunek
+
+        if (
+            swinia.userData.timer <= 0
+        ) {
+
+            swinia.userData.kierunek =
+                Math.random() *
+                Math.PI *
+                2;
+
+            swinia.userData.predkosc =
+                0.4 +
+                Math.random() * 0.7;
+
+            swinia.userData.timer =
+                2 +
+                Math.random() * 5;
+
+        }
+
+
+        const kierunek =
+            swinia.userData.kierunek;
+
+
+        const dx =
+            Math.sin(kierunek);
+
+        const dz =
+            Math.cos(kierunek);
+
+
+        // Ruch
+
+        swinia.position.x +=
+            dx *
+            swinia.userData.predkosc *
+            delta;
+
+        swinia.position.z +=
+            dz *
+            swinia.userData.predkosc *
+            delta;
+
+
+        // Obrót
+
+        swinia.rotation.y =
+            kierunek;
+
+
+        // Granica świata
+
+        const granica =
+            ROZMIAR_SWIATA / 2 - 4;
+
+
+        if (
+            swinia.position.x > granica ||
+            swinia.position.x < -granica ||
+            swinia.position.z > granica ||
+            swinia.position.z < -granica
+        ) {
+
+            swinia.userData.kierunek =
+                Math.atan2(
+                    -swinia.position.x,
+                    -swinia.position.z
+                );
+
+        }
+
+
+        // Wysokość terenu
+
+        const wysokosc =
+            pobierzWysokosc(
+                Math.floor(
+                    swinia.position.x
+                ),
+                Math.floor(
+                    swinia.position.z
+                )
+            );
+
+
+        swinia.position.y =
+            wysokosc + 0.05;
+
+
+        // Animacja nóg
+
+        swinia.userData.animacja +=
+            delta * 8;
+
+
+        const machanie =
+            Math.sin(
+                swinia.userData.animacja
+            ) * 0.25;
+
+
+        const nogi =
+            swinia.userData.nogi;
+
+
+        if (
+            nogi &&
+            nogi.length === 4
+        ) {
+
+            nogi[0].rotation.x =
+                machanie;
+
+            nogi[1].rotation.x =
+                -machanie;
+
+            nogi[2].rotation.x =
+                -machanie;
+
+            nogi[3].rotation.x =
+                machanie;
+
+        }
+
+    }
+
+}
+
+
+// =====================================================
+// GRACZ
+// =====================================================
+
+const player = {
+
+    velocity:
+        new THREE.Vector3(),
+
+    speed: 7,
+
+    grawitacja: 20,
+
+    wysokoscOczu: 1.8,
+
+    wPowietrzu: true
+
+};
+
+
+camera.position.set(
+
+    0,
+
+    pobierzWysokosc(
+        0,
+        0
+    ) +
+    player.wysokoscOczu +
+    1,
+
+    0
+
+);
+
+
+// =====================================================
+// KLAWISZE
+// =====================================================
+
+const keys = {
+
+    w: false,
+    a: false,
+    s: false,
+    d: false
+
+};
+
+
+// =====================================================
+// EQ
+// =====================================================
+
+const MAX_SLOTOW = 9;
+
+const eq =
+    Array.from(
+        {
+            length: MAX_SLOTOW
+        },
+        () => ({
+            typ: null,
+            ilosc: 0
+        })
+    );
+
+let wybranySlot = 0;
+
+let inventoryOpen = false;
+
+
+// =====================================================
+// HOTBAR
+// =====================================================
+
+const hotbar =
+    document.getElementById(
+        "hotbar"
+    );
+
+function odswiezHotbar() {
+
+    hotbar.innerHTML = "";
+
+    for (
+        let i = 0;
+        i < MAX_SLOTOW;
+        i++
+    ) {
+
+        const slot =
+            document.createElement(
+                "div"
+            );
+
+        slot.className =
+            "slot";
+
+
+        if (
+            i === wybranySlot
+        ) {
+
+            slot.classList.add(
+                "selected"
+            );
+
+        }
+
+
+        const numer =
+            document.createElement(
+                "div"
+            );
+
+        numer.className =
+            "slot-number";
+
+        numer.textContent =
+            i + 1;
+
+        slot.appendChild(
+            numer
+        );
+
+
+        const item =
+            eq[i];
+
+
+        if (
+            item.typ &&
+            item.ilosc > 0
+        ) {
+
+            const icon =
+                document.createElement(
+                    "div"
+                );
+
+            icon.className =
+                "item-icon";
+
+            icon.style.background =
+                itemy[
+                    item.typ
+                ].kolor;
+
+            slot.appendChild(
+                icon
+            );
+
+
+            const count =
+                document.createElement(
+                    "div"
+                );
+
+            count.className =
+                "slot-count";
+
+            count.textContent =
+                item.ilosc;
+
+            slot.appendChild(
+                count
+            );
+
+        }
+
+
+        hotbar.appendChild(
+            slot
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// EQ
+// =====================================================
+
+function odswiezInventory() {
+
+    const kontener =
+        document.getElementById(
+            "inventory-slots"
+        );
+
+    kontener.innerHTML = "";
+
+    for (
+        let i = 0;
+        i < MAX_SLOTOW;
+        i++
+    ) {
+
+        const slot =
+            document.createElement(
+                "div"
+            );
+
+        slot.className =
+            "inventory-slot";
+
+
+        if (
+            i === wybranySlot
+        ) {
+
+            slot.classList.add(
+                "selected"
+            );
+
+        }
+
+
+        const numer =
+            document.createElement(
+                "div"
+            );
+
+        numer.className =
+            "slot-number";
+
+        numer.textContent =
+            i + 1;
+
+        slot.appendChild(
+            numer
+        );
+
+
+        const item =
+            eq[i];
+
+
+        if (
+            item.typ &&
+            item.ilosc > 0
+        ) {
+
+            const icon =
+                document.createElement(
+                    "div"
+                );
+
+            icon.className =
+                "inventory-icon";
+
+            icon.style.background =
+                itemy[
+                    item.typ
+                ].kolor;
+
+            slot.appendChild(
+                icon
+            );
+
+
+            const licznik =
+                document.createElement(
+                    "div"
+                );
+
+            licznik.className =
+                "slot-count";
+
+            licznik.textContent =
+                item.ilosc;
+
+            slot.appendChild(
+                licznik
+            );
+
+        }
+
+
+        slot.addEventListener(
+            "click",
+            () => {
+                wybierzSlot(i);
+            }
+        );
+
+
+        kontener.appendChild(
+            slot
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// WYBÓR SLOTU
+// =====================================================
+
+function wybierzSlot(
+    index
+) {
+
+    if (
+        index < 0 ||
+        index >= MAX_SLOTOW
+    ) {
+
+        return;
+
+    }
+
+    wybranySlot =
+        index;
+
+    odswiezHotbar();
+    odswiezInventory();
+
+}
+
+
+// =====================================================
+// DODAJ DO EQ
+// =====================================================
+
+function dodajDoEq(
+    typ,
+    ilosc = 1
+) {
+
+    for (
+        let i = 0;
+        i < MAX_SLOTOW;
+        i++
+    ) {
+
+        if (
+            eq[i].typ === typ
+        ) {
+
+            eq[i].ilosc +=
+                ilosc;
+
+            odswiezHotbar();
+            odswiezInventory();
+
+            pokazKomunikat(
+                "+" +
+                ilosc +
+                " " +
+                itemy[typ].nazwa
+            );
+
+            return true;
+
+        }
+
+    }
+
+
+    for (
+        let i = 0;
+        i < MAX_SLOTOW;
+        i++
+    ) {
+
+        if (
+            eq[i].typ === null
+        ) {
+
+            eq[i].typ =
+                typ;
+
+            eq[i].ilosc =
+                ilosc;
+
+            odswiezHotbar();
+            odswiezInventory();
+
+            pokazKomunikat(
+                "+" +
+                ilosc +
+                " " +
+                itemy[typ].nazwa
+            );
+
+            return true;
+
+        }
+
+    }
+
+
+    pokazKomunikat(
+        "EQ PEŁNE!"
+    );
+
+    return false;
+
+}
+
+
+// =====================================================
+// USUWANIE Z EQ
+// =====================================================
+
+function usunZEq(
+    slotIndex,
+    ilosc = 1
+) {
+
+    const slot =
+        eq[slotIndex];
+
+
+    if (
+        !slot.typ ||
+        slot.ilosc < ilosc
+    ) {
+
+        return false;
+
+    }
+
+
+    slot.ilosc -=
+        ilosc;
+
+
+    if (
+        slot.ilosc <= 0
+    ) {
+
+        slot.ilosc = 0;
+        slot.typ = null;
+
+    }
+
+
+    odswiezHotbar();
+    odswiezInventory();
+
+    return true;
+
+}
+
+
+// =====================================================
+// DROPY
+// =====================================================
+
+const dropy = [];
+
+function upuscBlok(
+    typ,
+    pozycja
+) {
+
+    const drop =
+        new THREE.Mesh(
+
+            new THREE.BoxGeometry(
+                0.35,
+                0.35,
+                0.35
+            ),
+
+            new THREE.MeshLambertMaterial({
+                color:
+                    itemy[
+                        typ
+                    ].kolor
+            })
+
+        );
+
+
+    drop.position.copy(
+        pozycja
+    );
+
+
+    drop.position.y +=
+        0.8;
+
+
+    drop.userData.typ =
+        typ;
+
+    drop.userData.predkoscY =
+        2.5;
+
+    drop.userData.obrot =
+        1 +
+        Math.random() * 3;
+
+    drop.userData.naZiemi =
+        false;
+
+
+    scene.add(
+        drop
+    );
+
+    dropy.push(
+        drop
+    );
+
+}
+
+
+// =====================================================
+// KOLIZJA DROPÓW
+// =====================================================
+
+function pobierzBlokPodDropem(
+    drop
+) {
+
+    const polowa =
+        0.175;
+
+    const dropMinX =
+        drop.position.x -
+        polowa;
+
+    const dropMaxX =
+        drop.position.x +
+        polowa;
+
+    const dropMinY =
+        drop.position.y -
+        polowa;
+
+    const dropMinZ =
+        drop.position.z -
+        polowa;
+
+    const dropMaxZ =
+        drop.position.z +
+        polowa;
+
+
+    let najlepszyBlok = null;
+
+    let najwyzszaGora =
+        -Infinity;
+
+
+    for (
+        const block of blocks
+    ) {
+
+        const bx =
+            block.position.x;
+
+        const by =
+            block.position.y;
+
+        const bz =
+            block.position.z;
+
+
+        if (
+            dropMaxX <
+            bx - 0.5 ||
+
+            dropMinX >
+            bx + 0.5
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            dropMaxZ <
+            bz - 0.5 ||
+
+            dropMinZ >
+            bz + 0.5
+        ) {
+
+            continue;
+
+        }
+
+
+        const goraBloku =
+            by + 0.5;
+
+
+        if (
+            dropMinY >=
+            goraBloku - 0.1
+        ) {
+
+            if (
+                goraBloku >
+                najwyzszaGora
+            ) {
+
+                najwyzszaGora =
+                    goraBloku;
+
+                najlepszyBlok =
+                    block;
+
+            }
+
+        }
+
+    }
+
+
+    return najlepszyBlok;
+
+}
+
+
+// =====================================================
+// ZBIERANIE
+// =====================================================
+
+function zbierzDrop(
+    drop
+) {
+
+    const typ =
+        drop.userData.typ;
+
+
+    const sukces =
+        dodajDoEq(
+            typ,
+            1
+        );
+
+
+    if (!sukces) {
+        return;
+    }
+
+
+    scene.remove(
+        drop
+    );
+
+
+    const index =
+        dropy.indexOf(
+            drop
+        );
+
+
+    if (
+        index !== -1
+    ) {
+
+        dropy.splice(
+            index,
+            1
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// KOMUNIKAT
+// =====================================================
+
+let komunikatTimer =
+    null;
+
+function pokazKomunikat(
+    tekst
+) {
+
+    const komunikat =
+        document.getElementById(
+            "komunikat"
+        );
+
+
+    komunikat.textContent =
+        tekst;
+
+
+    komunikat.style.opacity =
+        "1";
+
+
+    clearTimeout(
+        komunikatTimer
+    );
+
+
+    komunikatTimer =
+        setTimeout(
+            () => {
+
+                komunikat.style.opacity =
+                    "0";
+
+            },
+            900
+        );
+
+}
+
+
+// =====================================================
+// POINTER LOCK
+// =====================================================
+
+const menu =
+    document.getElementById(
+        "ekran-startowy"
+    );
+
+let czyMyszZablokowana =
+    false;
+
+
+menu.addEventListener(
+    "click",
+    () => {
+
+        if (
+            !inventoryOpen
+        ) {
+
+            document.body.requestPointerLock();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "pointerlockchange",
+    () => {
+
+        if (
+            document.pointerLockElement ===
+            document.body
+        ) {
+
+            menu.style.display =
+                "none";
+
+            czyMyszZablokowana =
+                true;
+
+        } else {
+
+            if (
+                !inventoryOpen
+            ) {
+
+                menu.style.display =
+                    "flex";
+
+            }
+
+            czyMyszZablokowana =
+                false;
+
+
+            keys.w = false;
+            keys.a = false;
+            keys.s = false;
+            keys.d = false;
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// ROZGLĄDANIE
+// =====================================================
+
+document.addEventListener(
+    "mousemove",
+    (e) => {
+
+        if (
+            !czyMyszZablokowana ||
+            inventoryOpen
+        ) {
+
+            return;
+
+        }
+
+
+        camera.rotation.y -=
+            e.movementX *
+            0.0025;
+
+
+        camera.rotation.x -=
+            e.movementY *
+            0.0025;
+
+
+        camera.rotation.x =
+            Math.max(
+                -Math.PI / 2.2,
+                Math.min(
+                    Math.PI / 2.2,
+                    camera.rotation.x
+                )
+            );
+
+    }
+);
+
+
+// =====================================================
+// KLAWISZE
+// =====================================================
+
+document.addEventListener(
+    "keydown",
+    (e) => {
+
+        if (
+            e.code === "KeyE"
+        ) {
+
+            inventoryOpen =
+                !inventoryOpen;
+
+
+            const inventory =
+                document.getElementById(
+                    "inventory"
+                );
+
+
+            if (
+                inventoryOpen
+            ) {
+
+                inventory.style.display =
+                    "block";
+
+                document.exitPointerLock();
+
+            } else {
+
+                inventory.style.display =
+                    "none";
+
+                document.body.requestPointerLock();
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            inventoryOpen
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            e.code === "KeyW"
+        ) {
+            keys.w = true;
+        }
+
+        if (
+            e.code === "KeyA"
+        ) {
+            keys.a = true;
+        }
+
+        if (
+            e.code === "KeyS"
+        ) {
+            keys.s = true;
+        }
+
+        if (
+            e.code === "KeyD"
+        ) {
+            keys.d = true;
+        }
+
+
+        if (
+            e.code === "Space" &&
+            !player.wPowietrzu
+        ) {
+
+            player.velocity.y =
+                7.5;
+
+            player.wPowietrzu =
+                true;
+
+        }
+
+
+        if (
+            e.code.startsWith(
+                "Digit"
+            )
+        ) {
+
+            const numer =
+                Number(
+                    e.code.replace(
+                        "Digit",
+                        ""
+                    )
+                );
+
+
+            if (
+                numer >= 1 &&
+                numer <= 9
+            ) {
+
+                wybierzSlot(
+                    numer - 1
+                );
+
+            }
+
+        }
+
+
+        // =================================================
+        // Q — WYRZUĆ ITEM
+        // =================================================
+
+        if (
+            e.code === "KeyQ"
+        ) {
+
+            e.preventDefault();
+
+            wyrzucAktualnyItem();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keyup",
+    (e) => {
+
+        if (
+            e.code === "KeyW"
+        ) {
+            keys.w = false;
+        }
+
+        if (
+            e.code === "KeyA"
+        ) {
+            keys.a = false;
+        }
+
+        if (
+            e.code === "KeyS"
+        ) {
+            keys.s = false;
+        }
+
+        if (
+            e.code === "KeyD"
+        ) {
+            keys.d = false;
+        }
+
+    }
+);
+
+
+// =====================================================
+// WYRZUĆ ITEM
+// =====================================================
+
+function wyrzucAktualnyItem() {
+
+    const slot =
+        eq[
+            wybranySlot
+        ];
+
+
+    if (
+        !slot.typ ||
+        slot.ilosc <= 0
+    ) {
+
+        pokazKomunikat(
+            "Brak itemu!"
+        );
+
+        return;
+
+    }
+
+
+    const typ =
+        slot.typ;
+
+
+    const sukces =
+        usunZEq(
+            wybranySlot,
+            1
+        );
+
+
+    if (!sukces) {
+        return;
+    }
+
+
+    const kierunek =
+        new THREE.Vector3(
+            0,
+            0,
+            -1
+        );
+
+
+    kierunek.applyQuaternion(
+        camera.quaternion
+    );
+
+
+    const pozycja =
+        camera.position.clone();
+
+
+    pozycja.add(
+        kierunek.multiplyScalar(
+            1.5
+        )
+    );
+
+
+    upuscBlok(
+        typ,
+        pozycja
+    );
+
+
+    pokazKomunikat(
+        "Wyrzucono: " +
+        itemy[typ].nazwa
+    );
+
+}
+
+
+// =====================================================
+// RAYCASTER
+// =====================================================
+
+const raycaster =
+    new THREE.Raycaster();
+
+const centerMouse =
+    new THREE.Vector2(
+        0,
+        0
+    );
+
+
+// =====================================================
+// NISZCZENIE / BUDOWANIE
+// =====================================================
+
+document.addEventListener(
+    "mousedown",
+    (e) => {
+
+        if (
+            !czyMyszZablokowana ||
+            inventoryOpen
+        ) {
+
+            return;
+
+        }
+
+
+        raycaster.setFromCamera(
+            centerMouse,
+            camera
+        );
+
+
+        const intersects =
+            raycaster.intersectObjects(
+                blocks,
+                false
+            );
+
+
+        if (
+            intersects.length === 0
+        ) {
+
+            return;
+
+        }
+
+
+        const hit =
+            intersects[0];
+
+
+        if (
+            hit.distance > 6
+        ) {
+
+            return;
+
+        }
+
+
+        const hitBlock =
+            hit.object;
+
+
+        // =================================================
+        // LEWY KLIK — NISZCZENIE
+        // =================================================
+
+        if (
+            e.button === 0
+        ) {
+
+            animacjaReki = 1;
+
+            czasReki = 0;
+
+
+            const typ =
+                hitBlock.userData.typ ||
+                "trawa";
+
+
+            scene.remove(
+                hitBlock
+            );
+
+
+            const index =
+                blocks.indexOf(
+                    hitBlock
+                );
+
+
+            if (
+                index !== -1
+            ) {
+
+                blocks.splice(
+                    index,
+                    1
+                );
+
+            }
+
+
+            upuscBlok(
+                typ,
+                hitBlock.position
+            );
+
+        }
+
+
+        // =================================================
+        // PRAWY KLIK — BUDOWANIE
+        // =================================================
+
+        if (
+            e.button === 2
+        ) {
+
+            const slot =
+                eq[
+                    wybranySlot
+                ];
+
+
+            if (
+                !slot.typ ||
+                slot.ilosc <= 0
+            ) {
+
+                pokazKomunikat(
+                    "Brak bloku!"
+                );
+
+                return;
+
+            }
+
+
+            const normal =
+                hit.face.normal;
+
+
+            const x =
+                Math.round(
+                    hitBlock.position.x +
+                    normal.x
+                );
+
+
+            const y =
+                Math.round(
+                    hitBlock.position.y +
+                    normal.y
+                );
+
+
+            const z =
+                Math.round(
+                    hitBlock.position.z +
+                    normal.z
+                );
+
+
+            // Nie buduj w graczu
+
+            if (
+
+                Math.abs(
+                    x -
+                    camera.position.x
+                ) < 1 &&
+
+                Math.abs(
+                    y -
+                    camera.position.y
+                ) < 2 &&
+
+                Math.abs(
+                    z -
+                    camera.position.z
+                ) < 1
+
+            ) {
+
+                return;
+
+            }
+
+
+            const zajety =
+                blocks.some(
+                    block =>
+                        block.position.x === x &&
+                        block.position.y === y &&
+                        block.position.z === z
+                );
+
+
+            if (
+                zajety
+            ) {
+
+                return;
+
+            }
+
+
+            postawBlok(
+                x,
+                y,
+                z,
+                materialy[
+                    slot.typ
+                ],
+                slot.typ
+            );
+
+
+            usunZEq(
+                wybranySlot,
+                1
+            );
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// PRAWY KLIK
+// =====================================================
+
+document.addEventListener(
+    "contextmenu",
+    e => e.preventDefault()
+);
+
+
+// =====================================================
+// ANIMACJA RĘKI
+// =====================================================
+
+function animujReke(
+    delta
+) {
+
+    if (
+        animacjaReki <= 0
+    ) {
+
+        rekaMesh.position.lerp(
+            pozycjaRekiStart,
+            delta * 12
+        );
+
+
+        rekaMesh.rotation.x +=
+            (
+                rotacjaRekiStart.x -
+                rekaMesh.rotation.x
+            ) *
+            delta * 12;
+
+
+        rekaMesh.rotation.y +=
+            (
+                rotacjaRekiStart.y -
+                rekaMesh.rotation.y
+            ) *
+            delta * 12;
+
+
+        rekaMesh.rotation.z +=
+            (
+                rotacjaRekiStart.z -
+                rekaMesh.rotation.z
+            ) *
+            delta * 12;
+
+
+        return;
+
+    }
+
+
+    czasReki +=
+        delta * 14;
+
+
+    const t =
+        Math.min(
+            czasReki / Math.PI,
+            1
+        );
+
+
+    const uderzenie =
+        Math.sin(
+            t * Math.PI
+        );
+
+
+    rekaMesh.position.x =
+        pozycjaRekiStart.x -
+        uderzenie * 0.16;
+
+
+    rekaMesh.position.y =
+        pozycjaRekiStart.y -
+        uderzenie * 0.08;
+
+
+    rekaMesh.position.z =
+        pozycjaRekiStart.z +
+        uderzenie * 0.28;
+
+
+    rekaMesh.rotation.x =
+        rotacjaRekiStart.x -
+        uderzenie * 0.9;
+
+
+    rekaMesh.rotation.y =
+        rotacjaRekiStart.y +
+        uderzenie * 0.25;
+
+
+    if (
+        t >= 1
+    ) {
+
+        animacjaReki = 0;
+
+        czasReki = 0;
+
+        rekaMesh.position.copy(
+            pozycjaRekiStart
+        );
+
+        rekaMesh.rotation.copy(
+            rotacjaRekiStart
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// PĘTLA GRY
+// =====================================================
+
+const clock =
+    new THREE.Clock();
+
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const delta =
+        Math.min(
+            clock.getDelta(),
+            0.1
+        );
+
+
+    // =================================================
+    // RUCH
+    // =================================================
+
+    if (
+        czyMyszZablokowana &&
+        !inventoryOpen
+    ) {
+
+        const kierunekRuchu =
+            new THREE.Vector3();
+
+
+        const przod =
+            new THREE.Vector3(
+                0,
+                0,
+                -1
+            );
+
+
+        przod.applyQuaternion(
+            camera.quaternion
+        );
+
+        przod.y = 0;
+
+        przod.normalize();
+
+
+        const bok =
+            new THREE.Vector3(
+                1,
+                0,
+                0
+            );
+
+
+        bok.applyQuaternion(
+            camera.quaternion
+        );
+
+        bok.y = 0;
+
+        bok.normalize();
+
+
+        if (keys.w) {
+            kierunekRuchu.add(przod);
+        }
+
+        if (keys.s) {
+            kierunekRuchu.sub(przod);
+        }
+
+        if (keys.d) {
+            kierunekRuchu.add(bok);
+        }
+
+        if (keys.a) {
+            kierunekRuchu.sub(bok);
+        }
+
+
+        if (
+            kierunekRuchu.lengthSq() > 0
+        ) {
+
+            kierunekRuchu
+                .normalize()
+                .multiplyScalar(
+                    player.speed *
+                    delta
+                );
+
+
+            camera.position.add(
+                kierunekRuchu
+            );
+
+        }
+
+
+        // =================================================
+        // GRAWITACJA
+        // =================================================
+
+        player.velocity.y -=
+            player.grawitacja *
+            delta;
+
+
+        camera.position.y +=
+            player.velocity.y *
+            delta;
+
+
+        // =================================================
+        // KOLIZJA Z TERENEM
+        // =================================================
+
+        const graczX =
+            Math.floor(
+                camera.position.x
+            );
+
+        const graczZ =
+            Math.floor(
+                camera.position.z
+            );
+
+
+        const poziomKolizji =
+            pobierzWysokosc(
+                graczX,
+                graczZ
+            ) +
+            player.wysokoscOczu +
+            0.01;
+
+
+        if (
+            camera.position.y <
+            poziomKolizji
+        ) {
+
+            camera.position.y =
+                poziomKolizji;
+
+            player.velocity.y =
+                0;
+
+            player.wPowietrzu =
+                false;
+
+        }
+
+    }
+
+
+    // =================================================
+    // RĘKA
+    // =================================================
+
+    animujReke(
+        delta
+    );
+
+
+    // =================================================
+    // ŚWINIE
+    // =================================================
+
+    aktualizujSwinie(
+        delta
+    );
+
+
+    // =================================================
+    // FIZYKA DROPÓW
+    // =================================================
+
+    for (
+        let i = dropy.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const drop =
+            dropy[i];
+
+
+        drop.rotation.x +=
+            delta *
+            drop.userData.obrot;
+
+        drop.rotation.y +=
+            delta *
+            drop.userData.obrot;
+
+
+        if (
+            !drop.userData.naZiemi
+        ) {
+
+            drop.userData.predkoscY -=
+                18 * delta;
+
+
+            const poprzedniaY =
+                drop.position.y;
+
+
+            drop.position.y +=
+                drop.userData.predkoscY *
+                delta;
+
+
+            const blokPod =
+                pobierzBlokPodDropem(
+                    drop
+                );
+
+
+            if (
+                blokPod
+            ) {
+
+                const goraBloku =
+                    blokPod.position.y +
+                    0.5;
+
+                const polowaDropa =
+                    0.175;
+
+
+                if (
+                    drop.position.y -
+                    polowaDropa <=
+                    goraBloku &&
+
+                    poprzedniaY -
+                    polowaDropa >=
+                    goraBloku - 0.15
+                ) {
+
+                    drop.position.y =
+                        goraBloku +
+                        polowaDropa;
+
+                    drop.userData.predkoscY =
+                        0;
+
+                    drop.userData.naZiemi =
+                        true;
+
+                }
+
+            }
+
+        }
+
+
+        const odleglosc =
+            drop.position.distanceTo(
+                camera.position
+            );
+
+
+        // Przyciąganie
+
+        if (
+            odleglosc < 2
+        ) {
+
+            const kierunek =
+                camera.position
+                    .clone()
+                    .sub(
+                        drop.position
+                    );
+
+
+            if (
+                kierunek.lengthSq() > 0
+            ) {
+
+                kierunek.normalize();
+
+
+                drop.position.add(
+                    kierunek.multiplyScalar(
+                        delta * 8
+                    )
+                );
+
+            }
+
+
+            drop.userData.naZiemi =
+                false;
+
+        }
+
+
+        // Zbieranie
+
+        if (
+            odleglosc < 0.7
+        ) {
+
+            zbierzDrop(
+                drop
+            );
+
+        }
+
+    }
+
+
+    // =================================================
+    // RENDER
+    // =================================================
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+// =====================================================
+// RESIZE
+// =====================================================
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
+
+
+// =====================================================
+// START
+// =====================================================
+
+odswiezHotbar();
+
+odswiezInventory();
+
+animate();
+
+</script>
+
+</body>
+</html>
+
+
